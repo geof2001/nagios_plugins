@@ -15,6 +15,9 @@
 #################################################################################
 # keep Check on any file in any directory
 # This plugin requires basic perl plugin on the system.
+#
+# Added by Stephane Lapie <stephane.lapie> on 2017/05/26:
+# - a "-i" option to ignore the absence of a file, and return OK in that case
 
 use strict;
 use warnings;
@@ -22,13 +25,13 @@ use English;
 use Getopt::Long;
 use File::stat;
 use vars qw($PROGNAME);
-use lib "/usr/lib64/nagios/plugins";
+use lib "/usr/lib/nagios/plugins";
 use utils qw (%ERRORS &print_revision &support);
 
 sub print_help ();
 sub print_usage ();
 
-my ($opt_c, $opt_f, $opt_w, $opt_r, $opt_h, $opt_V);
+my ($opt_c, $opt_f, $opt_w, $opt_r, $opt_h, $opt_V, $opt_i);
 
 $PROGNAME="check_file_size";
 
@@ -41,6 +44,7 @@ Getopt::Long::Configure('bundling');
 GetOptions(
         "V"     => \$opt_V, "version"           => \$opt_V,
         "h"     => \$opt_h, "help"              => \$opt_h,
+        "i"     => \$opt_i, "ignore-absence"    => \$opt_i,
         "r"     => \$opt_r, "reverse-check"     => \$opt_r,
         "f=s"   => \$opt_f, "file"              => \$opt_f,
         "w=f"   => \$opt_w, "warning-size=f"    => \$opt_w,
@@ -64,9 +68,16 @@ if (! $opt_f) {
 }
 
 # check that file exists
-unless (-e $opt_f) {
-        print "FILE_SIZE CRITICAL: File not found - $opt_f\n";
-        exit $ERRORS{'CRITICAL'};
+if ($opt_i) {
+	unless (-e $opt_f) {
+		print "FILE_SIZE OK: File not found - $opt_f\n";
+		exit $ERRORS{'OK'};
+	}
+} else {
+	unless (-e $opt_f) {
+		print "FILE_SIZE CRITICAL: File not found - $opt_f\n";
+		exit $ERRORS{'CRITICAL'};
+	}
 }
 
 my $st = File::stat::stat($opt_f);
